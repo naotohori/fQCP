@@ -148,7 +148,7 @@ subroutine FastCalcRMSDAndRotation(A, minScore, nlen, E0, rmsd, rot, ireturn)
    real(PREC), intent(out) :: rot(9)
    integer,    intent(out) :: ireturn
 
-   real(PREC) :: Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz;
+   real(PREC) :: Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz
    real(PREC) :: Szz2, Syy2, Sxx2, Sxy2, Syz2, Sxz2, Syx2, Szy2, Szx2, &
                  SyzSzymSyySzz2, Sxx2Syy2Szz2Syz2Szy2, Sxy2Sxz2Syx2Szx2, &
                  SxzpSzx, SyzpSzy, SxypSyx, SyzmSzy, &
@@ -421,15 +421,15 @@ subroutine CalcRMSDRotationalMatrix(nlen, coords1, coords2, rmsd, rot, weight)
       call CenterCoords(nlen, coords2, weight)
        
       ! calculate the (weighted) inner product of two structures
-      call InnerProduct(nlen, coords1, coords2, A, E0, weight);
+      call InnerProduct(nlen, coords1, coords2, A, E0, weight)
    else
       call CenterCoords(nlen, coords1)
       call CenterCoords(nlen, coords2)
 
-      call InnerProduct(nlen, coords1, coords2, A, E0);
+      call InnerProduct(nlen, coords1, coords2, A, E0)
    endif
 
    ! calculate the RMSD & rotational matrix
-   call FastCalcRMSDAndRotation(A, -1, nlen, E0, rmsd, rot, ireturn);
+   call FastCalcRMSDAndRotation(A, -1, nlen, E0, rmsd, rot, ireturn)
 
 endsubroutine CalcRMSDRotationalMatrix
