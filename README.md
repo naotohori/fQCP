@@ -1,9 +1,11 @@
 # fQCP
-Fortran version of Quaternion Characteristic Polynomial (QCP) superposition method
-translated from C by Naoto Hori.  The original code was written by Douglas L. Theobald
+Quaternion Characteristic Polynomial (QCP) is a method to calculate RMSD and rotation matrix for superpositioning.
+
+This is a Fortran version of QCP translated from C.  
+The original code (QCProt 1.4; 2012, October 10) was written by Douglas L. Theobald
 and Pu Liu, and distirubuted under a BSD open source license at http://theobald.brandeis.edu/qcp .
 
-QCP is a method to calculate RMSD and rotation matrix for superpositioning.
+In this package, a Python module is also provided through f2py.
 
 Following is the original notice for the original code written in C
 by Theobald and Liu, distributed at http://theobald.brandeis.edu/qcp 
@@ -25,4 +27,10 @@ by Theobald and Liu, distributed at http://theobald.brandeis.edu/qcp
 >  Copyright (c) 2009-2012, Pu Liu and Douglas L. Theobald
 >  All rights reserved.
 
-Coipyright (c) 2016 Naoto Hori
+
+## License and Copyright
+Both this package and the original code are distributed under a BSD license.  
+See https://github.com/naotohori/fQCP/blob/master/LICENSE
+
+Copyright (c) 2009-2012, Pu Liu and Douglas L. Theobald  (The original code in c)  
+Copyright (c) 2016, Naoto Hori  (This package)
