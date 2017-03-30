@@ -95,58 +95,13 @@
 
 #define PREC 8
 
-!subroutine InnerProduct(nlen, coords1, coords2, A, E0, weight)
-!    
-!   implicit none 
-!
-!   integer,    intent(in) :: nlen
-!   real(PREC), intent(in) :: coords1(3,nlen)
-!   real(PREC), intent(in) :: coords2(3,nlen)
-!   real(PREC), intent(out) :: A(9)
-!   real(PREC), intent(out) :: E0
-!   real(PREC), intent(in), optional :: weight(nlen)
-!
-!   integer :: i
-!   real(PREC) :: G
-!
-!   A(:) = 0.0e0
-!   G = 0.0e0
-!
-!   if (present(weight)) then
-!      do i = 1, nlen
-!         G = G + dot_product(coords1(1:3,i), coords1(1:3,i)) * weight(i) &
-!               + dot_product(coords2(1:3,i), coords2(1:3,i)) * weight(i)
-!            
-!         A(1:3) = A(1:3) + coords1(1,i) * coords2(1:3,i)
-!         A(4:6) = A(4:6) + coords1(2,i) * coords2(1:3,i)
-!         A(7:9) = A(7:9) + coords1(3,i) * coords2(1:3,i)
-!      enddo
-!   else
-!      do i = 1, nlen
-!         G = G + dot_product( coords1(1:3,i), coords1(1:3,i) ) &
-!               + dot_product( coords2(1:3,i), coords2(1:3,i) )
-!
-!         A(1:3) = A(1:3) + coords1(1,i) * coords2(1:3,i)
-!         A(4:6) = A(4:6) + coords1(2,i) * coords2(1:3,i)
-!         A(7:9) = A(7:9) + coords1(3,i) * coords2(1:3,i)
-!      enddo
-!   endif
-!   
-!   E0 = G * 0.5
-!endsubroutine InnerProduct
-
-
-subroutine FastCalcRMSDAndRotation(A, minScore, nlen, E0, rmsd, rot, ireturn)
+real(PREC) function FastCalcRMSD(A, nlen, E0)
     
    implicit none 
 
    real(PREC), intent(in)  :: A(9)
-   integer,    intent(in)  :: minScore
    integer,    intent(in)  :: nlen
    real(PREC), intent(in)  :: E0
-   real(PREC), intent(out) :: rmsd
-   real(PREC), intent(out) :: rot(9)
-   integer,    intent(out) :: ireturn
 
    real(PREC) :: Sxx, Sxy, Sxz, Syx, Syy, Syz, Szx, Szy, Szz
    real(PREC) :: Szz2, Syy2, Sxx2, Sxy2, Syz2, Sxz2, Syx2, Szy2, Szx2, &
@@ -157,16 +112,9 @@ subroutine FastCalcRMSDAndRotation(A, minScore, nlen, E0, rmsd, rot, ireturn)
    integer :: i
    real(PREC) :: mxEigenV
    real(PREC) :: oldg
-   real(PREC) :: b, aa, delta, rms, qsqr
-   real(PREC) :: q1, q2, q3, q4, normq
-   real(PREC) :: a11, a12, a13, a14, a21, a22, a23, a24
-   real(PREC) :: a31, a32, a33, a34, a41, a42, a43, a44
-   real(PREC) :: a2, x2, y2, z2
-   real(PREC) :: xy, az, zx, ay, yz, ax
-   real(PREC) :: a3344_4334, a3244_4234, a3243_4233, a3143_4133,a3144_4134, a3142_4132
-   real(PREC), parameter :: evecprec = 1.0e-6
+   real(PREC) :: b, aa, delta
+   real(PREC) :: x2
    real(PREC), parameter :: evalprec = 1.0e-11
-   real(PREC) :: a1324_1423, a1224_1422, a1223_1322, a1124_1421, a1123_1321, a1122_1221
 
    Sxx = A(1)
    Sxy = A(2)
@@ -229,157 +177,13 @@ subroutine FastCalcRMSDAndRotation(A, minScore, nlen, E0, rmsd, rot, ireturn)
    enddo
 
    if (i == 50) then
-      write(*,*) "More than",i,"iterations needed!"
-   endif
-
-   ! the abs() is to guard against extremely small, but *negative* numbers due to floating point error
-   rms = sqrt(abs(2.0 * (E0 - mxEigenV)/real(nlen,kind=PREC)))
-   rmsd = rms
-   !write(*,*)  rms, E0, 2.0 * (E0 - mxEigenV)/len
-
-   if ((minScore > 0) .and. (rms < minScore)) then
-      ireturn = -1 ! Don't bother with rotation. 
+      !write(*,*) "More than",i,"iterations needed!"
+      FastCalcRMSD = -1.0
       return
    endif
 
-   a11 = SxxpSyy + Szz-mxEigenV
-   a12 = SyzmSzy
-   a13 = - SxzmSzx
-   a14 = SxymSyx
-   a21 = SyzmSzy
-   a22 = SxxmSyy - Szz-mxEigenV
-   a23 = SxypSyx
-   a24= SxzpSzx
-   a31 = a13
-   a32 = a23
-   a33 = Syy-Sxx-Szz - mxEigenV
-   a34 = SyzpSzy
-   a41 = a14
-   a42 = a24
-   a43 = a34
-   a44 = Szz - SxxpSyy - mxEigenV
-   a3344_4334 = a33 * a44 - a43 * a34
-   a3244_4234 = a32 * a44-a42*a34
-   a3243_4233 = a32 * a43 - a42 * a33
-   a3143_4133 = a31 * a43-a41*a33
-   a3144_4134 = a31 * a44 - a41 * a34
-   a3142_4132 = a31 * a42-a41*a32
-   q1 =  a22*a3344_4334-a23*a3244_4234+a24*a3243_4233
-   q2 = -a21*a3344_4334+a23*a3144_4134-a24*a3143_4133
-   q3 =  a21*a3244_4234-a22*a3144_4134+a24*a3142_4132
-   q4 = -a21*a3243_4233+a22*a3143_4133-a23*a3142_4132
+   ! the abs() is to guard against extremely small, but *negative* numbers due to floating point error
+   FastCalcRMSD = sqrt(abs(2.0 * (E0 - mxEigenV)/real(nlen,kind=PREC)))
+   return
+endfunction FastCalcRMSD
 
-   qsqr = q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4
-
-   !The following code tries to calculate another column in the adjoint matrix when the norm of the 
-   !current column is too small.
-   !Usually this block will never be activated.  To be absolutely safe this should be
-   !uncommented, but it is most likely unnecessary.
-
-   if (qsqr < evecprec) then
-      q1 =  a12*a3344_4334 - a13*a3244_4234 + a14*a3243_4233
-      q2 = -a11*a3344_4334 + a13*a3144_4134 - a14*a3143_4133
-      q3 =  a11*a3244_4234 - a12*a3144_4134 + a14*a3142_4132
-      q4 = -a11*a3243_4233 + a12*a3143_4133 - a13*a3142_4132
-      qsqr = q1*q1 + q2 *q2 + q3*q3+q4*q4
-
-      if (qsqr < evecprec) then
-         a1324_1423 = a13 * a24 - a14 * a23
-         a1224_1422 = a12 * a24 - a14 * a22
-         a1223_1322 = a12 * a23 - a13 * a22
-         a1124_1421 = a11 * a24 - a14 * a21
-         a1123_1321 = a11 * a23 - a13 * a21
-         a1122_1221 = a11 * a22 - a12 * a21
-
-         q1 =  a42 * a1324_1423 - a43 * a1224_1422 + a44 * a1223_1322
-         q2 = -a41 * a1324_1423 + a43 * a1124_1421 - a44 * a1123_1321
-         q3 =  a41 * a1224_1422 - a42 * a1124_1421 + a44 * a1122_1221
-         q4 = -a41 * a1223_1322 + a42 * a1123_1321 - a43 * a1122_1221
-         qsqr = q1*q1 + q2 *q2 + q3*q3+q4*q4
-
-         if (qsqr < evecprec) then
-            q1 =  a32 * a1324_1423 - a33 * a1224_1422 + a34 * a1223_1322
-            q2 = -a31 * a1324_1423 + a33 * a1124_1421 - a34 * a1123_1321
-            q3 =  a31 * a1224_1422 - a32 * a1124_1421 + a34 * a1122_1221
-            q4 = -a31 * a1223_1322 + a32 * a1123_1321 - a33 * a1122_1221
-            qsqr = q1*q1 + q2 *q2 + q3*q3 + q4*q4
-           
-            if (qsqr < evecprec) then
-               ! if qsqr is still too small, return the identity matrix.
-               rot(:) = 0.0e0
-               rot(1) = 1.0e0
-               rot(5) = 1.0e0
-               rot(9) = 1.0e0
-
-               ireturn = 0
-               return
-            endif
-         endif
-      endif
-   endif
-
-   normq = sqrt(qsqr)
-   q1 = q1 / normq
-   q2 = q2 / normq
-   q3 = q3 / normq
-   q4 = q4 / normq
-
-   a2 = q1 * q1
-   x2 = q2 * q2
-   y2 = q3 * q3
-   z2 = q4 * q4
-
-   xy = q2 * q3
-   az = q1 * q4
-   zx = q4 * q2
-   ay = q1 * q3
-   yz = q3 * q4
-   ax = q1 * q2
-
-   rot(1) = a2 + x2 - y2 - z2
-   rot(2) = 2 * (xy + az)
-   rot(3) = 2 * (zx - ay)
-   rot(4) = 2 * (xy - az)
-   rot(5) = a2 - x2 + y2 - z2
-   rot(6) = 2 * (yz + ax)
-   rot(7) = 2 * (zx + ay)
-   rot(8) = 2 * (yz - ax)
-   rot(9) = a2 - x2 - y2 + z2
-
-   ireturn = 1
-endsubroutine FastCalcRMSDAndRotation
-
-
-!subroutine CenterCoords(nlen, coords, weight)
-!    
-!   implicit none 
-!
-!   integer, intent(in) :: nlen
-!   real(PREC), intent(inout) :: coords(3,nlen)
-!   real(PREC), intent(in), optional :: weight(nlen)
-!   
-!   integer :: i
-!   real(PREC) :: s(3), wsum
-!
-!   s(:) = 0.0
-!
-!   if (present(weight)) then
-!      wsum = 0.0
-!      do i = 1, nlen
-!         s(:) = s(:) + weight(i) * coords(:,i)
-!         wsum = wsum + weight(i)
-!      enddo
-!
-!      s(:) = s(:) / wsum
-!   else
-!      do i = 1, nlen
-!         s(:) = s(:) + coords(:,i)
-!      enddo
-!
-!      s(:) = s(:) / real(nlen, kind=PREC)
-!   endif
-!
-!   do i = 1, nlen
-!      coords(:,i) = coords(:,i) - s(:)
-!   enddo
-!endsubroutine CenterCoords
