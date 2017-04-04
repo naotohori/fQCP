@@ -1,5 +1,5 @@
 !subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, rotmat, weight)
-subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, rotmat)
+subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, mat)
 
    implicit none 
 
@@ -32,7 +32,7 @@ subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, rotmat)
    real(8), intent(in) :: coords1_in(3,nlen)
    real(8), intent(in) :: coords2_in(3,nlen)
    real(8), intent(out) :: rmsd
-   real(8), intent(out) :: rotmat(4,4)
+   real(8), intent(out) :: mat(4,4)
 !   real(8), intent(in), optional :: weight(nlen)
 
    integer :: ireturn, i
@@ -41,6 +41,7 @@ subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, rotmat)
    real(8) :: coords1(3,nlen)
    real(8) :: coords2(3,nlen)
    real(8) :: center1(3), center2(3)
+   real(8) :: rotmat(4,4)
 
    coords1(:,:) = coords1_in(:,:)
    coords2(:,:) = coords2_in(:,:)
@@ -62,6 +63,8 @@ subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, rotmat)
    ! calculate the RMSD & rotational matrix
    call FastCalcRMSDAndRotation(A, -1, nlen, E0, rmsd, rot, ireturn)
 
+
+   ! For translation
    center1(:) = 0.0
    center2(:) = 0.0
    do i = 1, nlen
@@ -71,21 +74,66 @@ subroutine CalcRotation(nlen, coords1_in, coords2_in, rmsd, rotmat)
    center1(:) = center1(:) / real(nlen)
    center2(:) = center2(:) / real(nlen)
 
+
+   ! Calculate final rotation-translation matrix
+   ! [Trans Origin --> R1] [Rotation] [Trans R2 --> Origin] [Target]
+   ! [       TR1         ] [  rot   ] [        TR2        ] [Target]
+   ! ===> [mat] [Target]
+
+   ! [ TR1 ]
+   mat(:,:) = 0.0
+   do i = 1, 4
+      mat(i,i) = 1.0
+   enddo
+   !write(*,*) 'mat 0'
+   !do i = 1, 4
+   !   write(*,*) mat(i,1), mat(i,2), mat(i,3), mat(i,4) 
+   !enddo
+
+   mat(1,4) = center1(1)
+   mat(2,4) = center1(2)
+   mat(3,4) = center1(3)
+   !write(*,*) 'mat 1'
+   !do i = 1, 4
+   !   write(*,*) mat(i,1), mat(i,2), mat(i,3), mat(i,4) 
+   !enddo
+
+   ! [ rot ]
+   rotmat(:,:) = 0.0
+   do i = 1, 4
+      rotmat(i,i) = 1.0
+   enddo
    rotmat(1,1) = rot(1)
-   rotmat(2,1) = rot(2)
-   rotmat(3,1) = rot(3)
-   rotmat(4,1) = 0.0
-   rotmat(1,2) = rot(4)
+   rotmat(1,2) = rot(2)
+   rotmat(1,3) = rot(3)
+   rotmat(2,1) = rot(4)
    rotmat(2,2) = rot(5)
-   rotmat(3,2) = rot(6)
-   rotmat(4,2) = 0.0
-   rotmat(1,3) = rot(7)
-   rotmat(2,3) = rot(8)
+   rotmat(2,3) = rot(6)
+   rotmat(3,1) = rot(7)
+   rotmat(3,2) = rot(8)
    rotmat(3,3) = rot(9)
-   rotmat(4,3) = 0.0
-   rotmat(1,4) = center1(1) - center2(1)
-   rotmat(2,4) = center1(2) - center2(2)
-   rotmat(3,4) = center1(3) - center2(3)
-   rotmat(4,4) = 1.0
+
+   ! Calc [ TR1 ] [ rot ]
+   mat = matmul(mat, rotmat)
+   !write(*,*) 'mat 2'
+   !do i = 1, 4
+   !   write(*,*) mat(i,1), mat(i,2), mat(i,3), mat(i,4) 
+   !enddo
+
+   ! [ TR2 ]
+   rotmat(:,:) = 0.0
+   do i = 1, 4
+      rotmat(i,i) = 1.0
+   enddo
+   rotmat(1,4) = - center2(1)
+   rotmat(2,4) = - center2(2)
+   rotmat(3,4) = - center2(3)
+
+   ! Calc ([ TR1 ] [ rot ]) [ TR2 ]
+   mat = matmul(mat, rotmat)
+   !write(*,*) 'mat 3'
+   !do i = 1, 4
+   !   write(*,*) mat(i,1), mat(i,2), mat(i,3), mat(i,4) 
+   !enddo
 
 endsubroutine CalcRotation
