@@ -30,6 +30,8 @@ f2py:
 	f2py --fcompiler=$(PYF)  --opt=$(PYOPT) -c CalcRMSD.pyf move_coords.F90 qcprmsd.F90 calcrmsd.F90
 	f2py -m CalcROT -h CalcROT.pyf calcrotation.F90
 	f2py --fcompiler=$(PYF)  --opt=$(PYOPT) -c CalcROT.pyf move_coords.F90 qcprot.F90 calcrotation.F90
+	f2py -m Superimpose -h Superimpose.pyf superimpose.F90
+	f2py --fcompiler=$(PYF)  --opt=$(PYOPT) -c Superimpose.pyf move_coords.F90 qcprot.F90 superimpose.F90
  
 # suffix rule
 .F90.o:
