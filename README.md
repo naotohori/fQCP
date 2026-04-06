@@ -5,7 +5,29 @@ This is a Fortran version of QCP translated from C.
 The original code (QCProt 1.4; 2012, October 10) was written by Douglas L. Theobald
 and Pu Liu, and distirubuted under a BSD open source license at http://theobald.brandeis.edu/qcp .
 
-In this package, a Python module is also provided through f2py.
+## Python Usage
+
+This package provides a Python interface with two backends:
+- **Fortran (F2PY)**: Fast compiled backend (~5-37x faster). Requires `gfortran`, `meson`, and `ninja`.
+- **NumPy**: Pure Python fallback. Only requires `numpy` — no compiler needed.
+
+The backend is selected automatically: if F2PY-compiled `.so` files are present, the Fortran backend is used; otherwise it falls back to NumPy.
+
+```python
+from fQCP import calc_rmsd, calc_rotation, superimpose
+import fQCP
+print(fQCP.BACKEND)  # 'fortran' or 'numpy'
+
+# All functions take (N, 3) numpy arrays
+rmsd = calc_rmsd(coords1, coords2)
+rmsd, mat = calc_rotation(coords1, coords2)   # mat: 4x4 homogeneous matrix
+rmsd, coords2_fit = superimpose(coords1, coords2)
+```
+
+To build the Fortran backend (optional):
+```
+make f2py
+```
 
 Following is the original notice for the original code written in C
 by Theobald and Liu, distributed at http://theobald.brandeis.edu/qcp 
